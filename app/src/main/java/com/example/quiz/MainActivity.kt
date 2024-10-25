@@ -40,13 +40,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Navigation() {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "home") {
         composable("home") { MyScreen(navController) }
-        composable("questions") { QuestionsActivity() }
+        composable("questions") { QuestionsScreen() }
         composable("leaderboard") { LeaderboardActivity() }
     }
 }
@@ -90,14 +89,12 @@ fun MyScreen(navController: NavController) {
         )
 
         Button(onClick = {
-            Singleton.setUserName(text)
             navController.navigate("questions")
         }) {
             Text("Começar!")
         }
 
         Button(onClick = {
-            Singleton.setUserName(text)
             navController.navigate("leaderboard")
         }) {
             Text("Ranking de melhores jogadores!")
