@@ -34,6 +34,7 @@ import com.example.quiz.ui.theme.QuizTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Singleton.initializeDatabase(this)
         setContent {
             QuizTheme {
                 Surface(
@@ -52,11 +53,10 @@ fun Navigation() {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "home") {
         composable("home") { MyScreen(navController) }
-        composable("questions") { QuestionsScreen() }
-        composable("leaderboard") { LeaderboardActivity() }
+        composable("questions") { QuestionsScreen(navController) }
+        composable("leaderboard") { LeaderBoardScreen(navController) }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyScreen(navController: NavController) {
@@ -102,6 +102,7 @@ fun MyScreen(navController: NavController) {
 
         Button(
             onClick = {
+                Singleton.setUserName(text)
                 navController.navigate("questions")
             },
             modifier = Modifier

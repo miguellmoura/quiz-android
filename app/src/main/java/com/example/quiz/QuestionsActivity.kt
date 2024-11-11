@@ -17,7 +17,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.quiz.ui.theme.QuizTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class QuestionsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +35,7 @@ class QuestionsActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF00BCEB)
                 ) {
-                    QuestionsScreen()
+                    QuestionsNavigation()
                 }
             }
         }
@@ -36,7 +43,16 @@ class QuestionsActivity : ComponentActivity() {
 }
 
 @Composable
-fun QuestionsScreen() {
+fun QuestionsNavigation() {
+    val navController = rememberNavController()
+    NavHost(navController, startDestination = "questions") {
+        composable("questions") { QuestionsScreen(navController) }
+        composable("leaderboard") { LeaderBoardScreen(navController) }
+    }
+}
+
+@Composable
+fun QuestionsScreen(navController: NavController) {
     val questions = listOf(
         Question("De qual país é essa bandeira?", "Brasil", image = "flag_brazil", options = listOf("Brasil", "Argentina", "Alemanha", "França")),
         Question("Qual é a capital da França?", "Paris", image = null, options = listOf("Paris", "Londres", "Berlim", "Madrid")),
@@ -52,6 +68,9 @@ fun QuestionsScreen() {
     var isQuizActive by remember { mutableStateOf(true) }
     var score by remember { mutableStateOf(0) }
     var timer: CountDownTimer? by remember { mutableStateOf(null) }
+    val startTime = remember { System.currentTimeMillis() }
+    var showModal by remember { mutableStateOf(false) }
+    var totalTime by remember { mutableStateOf(0L) }
 
     fun goToNextQuestion() {
         selectedAnswer = ""
@@ -61,6 +80,19 @@ fun QuestionsScreen() {
         } else {
             message = "Quiz finalizado! Sua pontuação: $score"
             isQuizActive = false
+            val endTime = System.currentTimeMillis()
+            totalTime = endTime - startTime
+            showModal = true
+
+            // Salvar Score No Banco de Dados
+            val userName = Singleton.getUserName()
+            val userScore = UserScore(username = userName ?: "Desconhecido", score = score, time = totalTime)
+            val db = Singleton.getDatabase()
+            db?.let {
+                CoroutineScope(Dispatchers.IO).launch {
+                    db.userScoreDao().insertUserScore(userScore)
+                }
+            }
         }
     }
 
@@ -176,8 +208,43 @@ fun QuestionsScreen() {
             Text(text = message, color = Color.White, fontSize = 16.sp)
         }
     }
-}
 
+
+    if (showModal) {
+        AlertDialog(
+            onDismissRequest = { showModal = false },
+            title = { Text(text = "Quiz Finalizado!") },
+            text = {
+                Column {
+                    Text(text = "Sua pontuação: $score")
+                    val minutes = (totalTime / 1000) / 60
+                    val seconds = (totalTime / 1000) % 60
+                    Text(text = "Tempo total: ${minutes}m ${seconds}s")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showModal = false
+                        navController.navigate("leaderboard")
+                    }
+                ) {
+                    Text("Ver Ranking")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        showModal = false
+                        navController.navigate("home")
+                    }
+                ) {
+                    Text("Menu Principal")
+                }
+            }
+        )
+    }
+}
 
 data class Question(
     val questionText: String,
@@ -190,7 +257,7 @@ data class Question(
 @Composable
 fun QuestionsScreenPreview() {
     QuizTheme {
-        QuestionsScreen()
+        QuestionsScreen(navController = rememberNavController())
     }
 }
 
