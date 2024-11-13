@@ -1,8 +1,7 @@
+package com.example.quiz.viewmodel
+
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.quiz.Question
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.quiz.activities.Question
 
 class QuizViewModel : ViewModel() {
     val questions: List<Question> = listOf(

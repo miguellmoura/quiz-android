@@ -1,4 +1,4 @@
-package com.example.quiz
+package com.example.quiz.activities
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material3.*
+import com.example.quiz.singleton.Singleton
+import com.example.quiz.entity.UserScore
 
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

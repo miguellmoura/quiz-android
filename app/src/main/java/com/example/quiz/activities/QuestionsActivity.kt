@@ -1,6 +1,6 @@
-package com.example.quiz
+package com.example.quiz.activities
 
-import QuizViewModel
+import com.example.quiz.viewmodel.QuizViewModel
 import android.content.Context
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -31,9 +31,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.animation.*
 import androidx.compose.ui.platform.LocalContext
+import com.example.quiz.R
+import com.example.quiz.singleton.Singleton
+import com.example.quiz.entity.UserScore
 
 class QuestionsActivity : ComponentActivity() {
     private val quizViewModel: QuizViewModel by viewModels()

@@ -1,6 +1,7 @@
-package com.example.quiz
+package com.example.quiz.singleton
 
 import android.content.Context
+import com.example.quiz.database.AppDatabase
 
 object Singleton {
 
