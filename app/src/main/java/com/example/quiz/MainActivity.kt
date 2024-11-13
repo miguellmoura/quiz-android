@@ -1,5 +1,6 @@
 package com.example.quiz
 
+import QuizViewModel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,7 +54,7 @@ fun Navigation() {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "home") {
         composable("home") { MyScreen(navController) }
-        composable("questions") { QuestionsScreen(navController) }
+        composable("questions") { QuestionsScreen(navController, QuizViewModel())}
         composable("leaderboard") { LeaderBoardScreen(navController) }
     }
 }

@@ -1,8 +1,11 @@
 package com.example.quiz
+
+import QuizViewModel
 import android.os.Bundle
 import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,9 +27,13 @@ import androidx.navigation.compose.rememberNavController
 import com.example.quiz.ui.theme.QuizTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.*
 
 class QuestionsActivity : ComponentActivity() {
+    private val quizViewModel: QuizViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -35,7 +42,7 @@ class QuestionsActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF00BCEB)
                 ) {
-                    QuestionsNavigation()
+                    QuestionsNavigation(quizViewModel)
                 }
             }
         }
@@ -43,34 +50,71 @@ class QuestionsActivity : ComponentActivity() {
 }
 
 @Composable
-fun QuestionsNavigation() {
+fun QuestionsNavigation(quizViewModel: QuizViewModel) {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "questions") {
-        composable("questions") { QuestionsScreen(navController) }
+        composable("questions") { QuestionsScreen(navController, quizViewModel) }
         composable("leaderboard") { LeaderBoardScreen(navController) }
     }
 }
 
 @Composable
-fun QuestionsScreen(navController: NavController) {
-    val questions = listOf(
-        Question("De qual país é essa bandeira?", "Brasil", image = "flag_brazil", options = listOf("Brasil", "Argentina", "Alemanha", "França")),
-        Question("Qual é a capital da França?", "Paris", image = null, options = listOf("Paris", "Londres", "Berlim", "Madrid")),
-        Question("Qual o animal mais rápido do mundo?", "Falcão-Peregrino", image = null, options = listOf("Falcão-Peregrino", "Guepardo", "Lebre", "Águia")),
-        Question("Em que continente está o Egito?", "África", image = "flag_egypt", options = listOf("África", "Ásia", "Europa", "América Latina")),
-        Question("Qual é o maior planeta do sistema solar?", "Júpiter", image = "planets", options = listOf("Júpiter", "Saturno", "Urano", "Netuno"))
-    )
+fun QuestionsScreen(navController: NavController, quizViewModel: QuizViewModel) {
+    var countdown by remember { mutableStateOf(3) }
+    var showCountdown by remember { mutableStateOf(true) }
 
-    var currentQuestionIndex by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (countdown > 0) {
+            delay(1000L)
+            countdown--
+        }
+        showCountdown = false
+    }
+
+    if (showCountdown) {
+        CountdownScreen(countdown)
+    } else {
+        QuizContent(navController, quizViewModel)
+    }
+}
+
+@Composable
+fun CountdownScreen(countdown: Int) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF00BCEB)),
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedVisibility(
+            visible = countdown > 0,
+            enter = scaleIn(initialScale = 0.5f) + fadeIn(),
+            exit = scaleOut(targetScale = 0.5f) + fadeOut()
+        ) {
+            Text(
+                text = countdown.toString(),
+                color = Color.White,
+                fontSize = 72.sp,
+                fontWeight = FontWeight.Bold,
+
+                )
+        }
+    }
+}
+
+@Composable
+fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
+    val questions = quizViewModel.questions
+    var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var selectedAnswer by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
-    var timeLeft by remember { mutableStateOf(30) }
+    var timeLeft by remember { mutableIntStateOf(30) }
     var isQuizActive by remember { mutableStateOf(true) }
-    var score by remember { mutableStateOf(0) }
+    var score by remember { mutableIntStateOf(0) }
     var timer: CountDownTimer? by remember { mutableStateOf(null) }
     val startTime = remember { System.currentTimeMillis() }
     var showModal by remember { mutableStateOf(false) }
-    var totalTime by remember { mutableStateOf(0L) }
+    var totalTime by remember { mutableLongStateOf(0L) }
 
     fun goToNextQuestion() {
         selectedAnswer = ""
@@ -84,9 +128,9 @@ fun QuestionsScreen(navController: NavController) {
             totalTime = endTime - startTime
             showModal = true
 
-            // Salvar Score No Banco de Dados
             val userName = Singleton.getUserName()
-            val userScore = UserScore(username = userName ?: "Desconhecido", score = score, time = totalTime)
+            val userScore =
+                UserScore(username = userName ?: "Desconhecido", score = score, time = totalTime)
             val db = Singleton.getDatabase()
             db?.let {
                 CoroutineScope(Dispatchers.IO).launch {
@@ -184,9 +228,11 @@ fun QuestionsScreen(navController: NavController) {
             Button(
                 onClick = {
                     selectedAnswer = option
+                    val baseScore = 5
+                    val timeBonus = timeLeft // 5
                     if (option == currentQuestion.correctAnswer) {
                         message = "Correto!"
-                        score += 5
+                        score += baseScore + timeBonus
                     } else {
                         message = "Incorreto!"
                     }
@@ -209,7 +255,6 @@ fun QuestionsScreen(navController: NavController) {
         }
     }
 
-
     if (showModal) {
         AlertDialog(
             onDismissRequest = { showModal = false },
@@ -223,23 +268,29 @@ fun QuestionsScreen(navController: NavController) {
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showModal = false
-                        navController.navigate("leaderboard")
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(all = 8.dp),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("Ver Ranking")
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = {
-                        showModal = false
-                        navController.navigate("home")
+                    Button(
+                        onClick = {
+                            showModal = false
+                            navController.navigate("leaderboard")
+                        }
+                    ) {
+                        Text("Ver Ranking")
                     }
-                ) {
-                    Text("Menu Principal")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            showModal = false
+                            navController.navigate("home")
+                        }
+                    ) {
+                        Text("Menu Principal")
+                    }
                 }
             }
         )
@@ -257,7 +308,7 @@ data class Question(
 @Composable
 fun QuestionsScreenPreview() {
     QuizTheme {
-        QuestionsScreen(navController = rememberNavController())
+        QuestionsScreen(navController = rememberNavController(), quizViewModel = QuizViewModel())
     }
 }
 
