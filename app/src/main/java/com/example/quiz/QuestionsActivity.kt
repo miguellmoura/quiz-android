@@ -1,6 +1,8 @@
 package com.example.quiz
 
 import QuizViewModel
+import android.content.Context
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.animation.*
+import androidx.compose.ui.platform.LocalContext
 
 class QuestionsActivity : ComponentActivity() {
     private val quizViewModel: QuizViewModel by viewModels()
@@ -103,6 +106,33 @@ fun CountdownScreen(countdown: Int) {
 }
 
 @Composable
+fun AudioPlayer(context: Context) {
+    var isPlaying by remember { mutableStateOf(false) }
+    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.hinocortado) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer.release()
+        }
+    }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Button(
+            onClick = {
+                if (isPlaying) {
+                    mediaPlayer.pause()
+                } else {
+                    mediaPlayer.start()
+                }
+                isPlaying = !isPlaying
+            }
+        ) {
+            Text(text = if (isPlaying) "Pausar áudio" else "Tocar áudio")
+        }
+    }
+}
+
+@Composable
 fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
     val questions = quizViewModel.questions
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
@@ -167,143 +197,240 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
 
     val currentQuestion = questions[currentQuestionIndex]
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF00BCEB))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Row(
+    if (currentQuestion.audio != null){
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .background(Color(0xFF00BCEB))
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            Text(
-                text = "TEMPO RESTANTE: $timeLeft",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "PONTUAÇÃO: $score",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Text(
-            text = currentQuestion.questionText,
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
-
-        currentQuestion.image?.let { imageRes ->
-            val imageId = when (imageRes) {
-                "flag_brazil" -> R.drawable.bandeira_brasil
-                "flag_egypt" -> R.drawable.bandeira_egito
-                "planets" -> R.drawable.planetas_sistema_solar
-                "eiffel" -> R.drawable.eifel
-                "falcao" -> R.drawable.rapido
-                "suecia" -> R.drawable.suecia
-                else -> null
-            }
-            imageId?.let {
-                Image(
-                    painter = painterResource(id = it),
-                    contentDescription = "Imagem da Pergunta",
-                    modifier = Modifier
-                        .size(210.dp, 150.dp)
-                        .padding(8.dp)
-                        .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
+            AudioPlayer(context = LocalContext.current)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "TEMPO RESTANTE: $timeLeft",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "PONTUAÇÃO: $score",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = currentQuestion.questionText,
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
 
-        currentQuestion.options.forEach { option ->
-            Button(
-                onClick = {
-                    selectedAnswer = option
-                    val baseScore = 5
-                    val timeBonus = timeLeft // 5
-                    if (option == currentQuestion.correctAnswer) {
-                        message = "Correto!"
-                        score += baseScore + timeBonus
-                    } else {
-                        message = "Incorreto!"
-                    }
-                    goToNextQuestion()
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .padding(vertical = 8.dp)
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
-            ) {
-                Text(text = option, color = Color.White, fontSize = 16.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (message.isNotEmpty()) {
-            Text(text = message, color = Color.White, fontSize = 16.sp)
-        }
-    }
-
-    if (showModal) {
-        AlertDialog(
-            onDismissRequest = { showModal = false },
-            title = { Text(text = "Quiz Finalizado!") },
-            text = {
-                Column {
-                    Text(text = "Sua pontuação: $score")
-                    val minutes = (totalTime / 1000) / 60
-                    val seconds = (totalTime / 1000) % 60
-                    Text(text = "Tempo total: ${minutes}m ${seconds}s")
+            currentQuestion.image?.let { imageRes ->
+                val imageId = when (imageRes) {
+                    "flag_brazil" -> R.drawable.bandeira_brasil
+                    "flag_egypt" -> R.drawable.bandeira_egito
+                    "planets" -> R.drawable.planetas_sistema_solar
+                    "eiffel" -> R.drawable.eifel
+                    "falcao" -> R.drawable.rapido
+                    "suecia" -> R.drawable.suecia
+                    else -> null
                 }
-            },
-            confirmButton = {
-                Row(
+                imageId?.let {
+                    Image(
+                        painter = painterResource(id = it),
+                        contentDescription = "Imagem da Pergunta",
+                        modifier = Modifier
+                            .size(210.dp, 150.dp)
+                            .padding(8.dp)
+                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            currentQuestion.options.forEach { option ->
+                Button(
+                    onClick = {
+                        selectedAnswer = option
+                        val baseScore = 5
+                        val timeBonus = timeLeft // 5
+                        if (option == currentQuestion.correctAnswer) {
+                            message = "Correto!"
+                            score += baseScore + timeBonus
+                        } else {
+                            message = "Incorreto!"
+                        }
+                        goToNextQuestion()
+                    },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(all = 8.dp),
-                    horizontalArrangement = Arrangement.Center
+                        .fillMaxWidth(0.8f)
+                        .padding(vertical = 8.dp)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
                 ) {
-                    Button(
-                        onClick = {
-                            showModal = false
-                            navController.navigate("leaderboard")
-                        }
-                    ) {
-                        Text("Ver Ranking")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            showModal = false
-                            navController.navigate("home")
-                        }
-                    ) {
-                        Text("Menu Principal")
-                    }
+                    Text(text = option, color = Color.White, fontSize = 16.sp)
                 }
             }
-        )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (message.isNotEmpty()) {
+                Text(text = message, color = Color.White, fontSize = 16.sp)
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF00BCEB))
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "TEMPO RESTANTE: $timeLeft",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "PONTUAÇÃO: $score",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = currentQuestion.questionText,
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            currentQuestion.image?.let { imageRes ->
+                val imageId = when (imageRes) {
+                    "flag_brazil" -> R.drawable.bandeira_brasil
+                    "flag_egypt" -> R.drawable.bandeira_egito
+                    "planets" -> R.drawable.planetas_sistema_solar
+                    "eiffel" -> R.drawable.eifel
+                    "falcao" -> R.drawable.rapido
+                    "suecia" -> R.drawable.suecia
+                    else -> null
+                }
+                imageId?.let {
+                    Image(
+                        painter = painterResource(id = it),
+                        contentDescription = "Imagem da Pergunta",
+                        modifier = Modifier
+                            .size(210.dp, 150.dp)
+                            .padding(8.dp)
+                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            currentQuestion.options.forEach { option ->
+                Button(
+                    onClick = {
+                        selectedAnswer = option
+                        val baseScore = 5
+                        val timeBonus = timeLeft // 5
+                        if (option == currentQuestion.correctAnswer) {
+                            message = "Correto!"
+                            score += baseScore + timeBonus
+                        } else {
+                            message = "Incorreto!"
+                        }
+                        goToNextQuestion()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .padding(vertical = 8.dp)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
+                ) {
+                    Text(text = option, color = Color.White, fontSize = 16.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (message.isNotEmpty()) {
+                Text(text = message, color = Color.White, fontSize = 16.sp)
+            }
+        }
+
+        if (showModal) {
+            AlertDialog(
+                onDismissRequest = { showModal = false },
+                title = { Text(text = "Quiz Finalizado!") },
+                text = {
+                    Column {
+                        Text(text = "Sua pontuação: $score")
+                        val minutes = (totalTime / 1000) / 60
+                        val seconds = (totalTime / 1000) % 60
+                        Text(text = "Tempo total: ${minutes}m ${seconds}s")
+                    }
+                },
+                confirmButton = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(all = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(
+                            onClick = {
+                                showModal = false
+                                navController.navigate("leaderboard")
+                            }
+                        ) {
+                            Text("Ver Ranking")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                showModal = false
+                                navController.navigate("home")
+                            }
+                        ) {
+                            Text("Menu Principal")
+                        }
+                    }
+                }
+            )
+        }
     }
+
+
 }
 
 data class Question(
     val questionText: String,
     val correctAnswer: String,
     val image: String?,
+    val audio: String? = null,
     val options: List<String>
 )
 
