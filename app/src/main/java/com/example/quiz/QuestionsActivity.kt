@@ -165,7 +165,20 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
             val db = Singleton.getDatabase()
             db?.let {
                 CoroutineScope(Dispatchers.IO).launch {
-                    db.userScoreDao().insertUserScore(userScore)
+                    val existingScores = db.userScoreDao().getAllUserScores()
+                    val existingScore = existingScores.find { it.username == userScore.username }
+
+                    if (existingScore == null || userScore.score > existingScore.score) {
+                        if (existingScore != null) {
+                            db.userScoreDao().deleteUserScore(existingScore)
+                        }
+                        db.userScoreDao().insertUserScore(userScore)
+                    }
+
+                    if (db.userScoreDao().getAllUserScores().size > 10) {
+                        val lowestScore = db.userScoreDao().getAllUserScores().minByOrNull { it.score }
+                        lowestScore?.let { db.userScoreDao().deleteUserScore(it) }
+                    }
                 }
             }
         }
@@ -207,7 +220,7 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            AudioPlayer(context = LocalContext.current)
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,15 +240,6 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                     fontWeight = FontWeight.Bold
                 )
             }
-
-            Text(
-                text = currentQuestion.questionText,
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-
             currentQuestion.image?.let { imageRes ->
                 val imageId = when (imageRes) {
                     "flag_brazil" -> R.drawable.bandeira_brasil
@@ -244,6 +248,8 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                     "eiffel" -> R.drawable.eifel
                     "falcao" -> R.drawable.rapido
                     "suecia" -> R.drawable.suecia
+                    "flagm" -> R.drawable.iconsound2
+
                     else -> null
                 }
                 imageId?.let {
@@ -253,10 +259,19 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                         modifier = Modifier
                             .size(210.dp, 150.dp)
                             .padding(8.dp)
-                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
+//                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
                     )
                 }
             }
+            AudioPlayer(context = LocalContext.current)
+
+            Text(
+                text = currentQuestion.questionText,
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -289,6 +304,47 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
             if (message.isNotEmpty()) {
                 Text(text = message, color = Color.White, fontSize = 16.sp)
             }
+        }
+
+        if (showModal) {
+            AlertDialog(
+                onDismissRequest = { showModal = false },
+                title = { Text(text = "Quiz Finalizado!") },
+                text = {
+                    Column {
+                        Text(text = "Sua pontuação: $score")
+                        val minutes = (totalTime / 1000) / 60
+                        val seconds = (totalTime / 1000) % 60
+                        Text(text = "Tempo total: ${minutes}m ${seconds}s")
+                    }
+                },
+                confirmButton = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(all = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(
+                            onClick = {
+                                showModal = false
+                                navController.navigate("leaderboard")
+                            }
+                        ) {
+                            Text("Ver Ranking")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                showModal = false
+                                navController.navigate("home")
+                            }
+                        ) {
+                            Text("Menu Principal")
+                        }
+                    }
+                }
+            )
         }
     } else {
         Column(
@@ -335,6 +391,7 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                     "eiffel" -> R.drawable.eifel
                     "falcao" -> R.drawable.rapido
                     "suecia" -> R.drawable.suecia
+                    "flagm" -> R.drawable.iconsound2
                     else -> null
                 }
                 imageId?.let {
@@ -344,7 +401,7 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                         modifier = Modifier
                             .size(210.dp, 150.dp)
                             .padding(8.dp)
-                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
+//                            .border(2.dp, Color(0xFFFFA726), shape = MaterialTheme.shapes.medium)
                     )
                 }
             }

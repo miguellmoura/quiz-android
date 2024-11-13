@@ -12,6 +12,6 @@ class QuizViewModel : ViewModel() {
         Question("Em que continente está o Egito?", "África", image = "flag_egypt", options = listOf("África", "Ásia", "Europa", "América Latina").shuffled()),
         Question("Qual é o maior planeta do sistema solar?", "Júpiter", image = "planets", options = listOf("Júpiter", "Saturno", "Urano", "Netuno").shuffled()),
         Question("Qual é a capital da Suécia?", "Stockholm", image = "suecia", options = listOf("Estocolmo", "Oslo", "Helsinki", "Copenhague").shuffled()),
-        Question("De qual país é esse hino?", "Malta", image=null, audio="hinoCortado", options = listOf("Madagascar", "Lituânia", "Malta", "Estônia").shuffled()),
+        Question("De qual país é esse hino?", "Malta", image="flagm", audio="hinoCortado", options = listOf("Madagascar", "Lituânia", "Malta", "Estônia").shuffled()),
     ).shuffled()
 }
