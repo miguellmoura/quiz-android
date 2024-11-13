@@ -153,6 +153,7 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
             currentQuestionIndex++
         } else {
             message = "Quiz finalizado! Sua pontuação: $score"
+            timer?.cancel()
             isQuizActive = false
             val endTime = System.currentTimeMillis()
             totalTime = endTime - startTime
