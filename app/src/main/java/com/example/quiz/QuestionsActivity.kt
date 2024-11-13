@@ -208,6 +208,9 @@ fun QuizContent(navController: NavController, quizViewModel: QuizViewModel) {
                 "flag_brazil" -> R.drawable.bandeira_brasil
                 "flag_egypt" -> R.drawable.bandeira_egito
                 "planets" -> R.drawable.planetas_sistema_solar
+                "eiffel" -> R.drawable.eifel
+                "falcao" -> R.drawable.rapido
+                "suecia" -> R.drawable.suecia
                 else -> null
             }
             imageId?.let {
